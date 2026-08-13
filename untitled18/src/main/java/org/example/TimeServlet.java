@@ -44,7 +44,6 @@ public class TimeServlet extends HttpServlet {
         resolver.setTemplateMode(TemplateMode.HTML);
         resolver.setCacheable(false);
 
-        engine = new TemplateEngine();
         engine.setTemplateResolver(resolver);
     }
 
@@ -62,6 +61,7 @@ public class TimeServlet extends HttpServlet {
             zoneLabel = timezoneParam.replace(' ', '+');
             saveTimezoneToCookie(response, zoneLabel);
         }
+
         ZoneId zoneId = ZoneId.of(zoneLabel);
         String formattedTime = ZonedDateTime.now(zoneId).format(TIME_FORMATTER);
 
