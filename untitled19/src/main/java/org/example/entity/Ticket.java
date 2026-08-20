@@ -17,12 +17,15 @@ public class Ticket {
     @Column(name = "created_at")
     private Timestamp createdAt;
 
-    @Column(name = "client_id")
-    private int clientId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "client_id", nullable = false)
+    private Client client;
 
-    @Column(name = "from_planet_id")
-    private int fromPlanetId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "from_planet_id", nullable = false)
+    private Planet fromPlanet;
 
-    @Column(name = "to_planet_id")
-    private int toPlanetId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "to_planet_id", nullable = false)
+    private Planet toPlanet;
 }
