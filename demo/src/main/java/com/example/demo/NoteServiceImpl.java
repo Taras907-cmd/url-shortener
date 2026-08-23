@@ -35,5 +35,4 @@ public class NoteServiceImpl implements NoteService {
     public Note getById(long id) {
         return noteFakeResponsitory.noteGetById(id);
     }
-
 }
