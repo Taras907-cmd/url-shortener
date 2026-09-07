@@ -68,6 +68,7 @@ docker-compose up --build
 ./gradlew test
 ```
 
+
 Інтеграційні тести використовують [Testcontainers](https://java.testcontainers.org/) —
 для їх запуску потрібен встановлений і запущений Docker.
 
