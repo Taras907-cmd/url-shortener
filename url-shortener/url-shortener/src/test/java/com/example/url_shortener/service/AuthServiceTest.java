@@ -103,6 +103,7 @@ class AuthServiceTest {
         assertThrows(InvalidCredentialsException.class, () -> authService.login(request));
     }
 
+
     @Test
     void login_throwsException_whenUserNotFound() {
         LoginRequest request = new LoginRequest();
