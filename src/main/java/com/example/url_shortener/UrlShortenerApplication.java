@@ -12,4 +12,5 @@ public class UrlShortenerApplication {
 		TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
 		SpringApplication.run(UrlShortenerApplication.class, args);
 	}
+
 }
