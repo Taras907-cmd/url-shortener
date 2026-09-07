@@ -1,7 +1,9 @@
 package com.example.demo.service;
 
+import com.example.demo.exception.NoteNotFoundException;
 import com.example.demo.model.Note;
-import com.example.demo.repository.NoteFakeResponsitory;
+
+import com.example.demo.repository.NoteRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -11,30 +13,38 @@ import java.util.List;
 public class NoteServiceImpl implements NoteService {
 
     @Autowired
-    private NoteFakeResponsitory noteFakeResponsitory;
+    private NoteRepository noteRepository;
 
     @Override
     public List<Note> listAll() {
-        return noteFakeResponsitory.findAllNotes();
+        return noteRepository.findAll();
     }
 
     @Override
     public Note add(Note note) {
-        return noteFakeResponsitory.createNote(note);
+        return noteRepository.save(note);
     }
 
     @Override
     public void deleteById(long id) {
-        noteFakeResponsitory.noteDelete(id);
+        if (!noteRepository.existsById(id)) {
+            throw new NoteNotFoundException(id);
+        }
+        noteRepository.deleteById(id);
     }
 
     @Override
     public void update(Note note) {
-        noteFakeResponsitory.noteUpdate(note);
+        if (!noteRepository.existsById(note.getId())) {
+            throw new NoteNotFoundException(note.getId());
+        }
+        noteRepository.save(note);
     }
 
     @Override
     public Note getById(long id) {
-        return noteFakeResponsitory.noteGetById(id);
+        return noteRepository.findById(id)
+                .orElseThrow(() -> new NoteNotFoundException(id));
     }
+
 }
