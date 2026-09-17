@@ -9,21 +9,21 @@ import com.example.url_shortener.exception.InvalidCredentialsException;
 import com.example.url_shortener.exception.UsernameAlreadyExistsException;
 import com.example.url_shortener.repository.UserRepository;
 import com.example.url_shortener.security.JwtService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 @Service
 public class AuthService {
 
-    @Autowired
-    private UserRepository userRepository;
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final JwtService jwtService;
 
-    @Autowired
-    private PasswordEncoder passwordEncoder;
-
-    @Autowired
-    private JwtService jwtService;
+    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtService jwtService) {
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
+        this.jwtService = jwtService;
+    }
 
     public UserResponse register(RegisterRequest request) {
         if (userRepository.existsByUsername(request.getUsername())) {

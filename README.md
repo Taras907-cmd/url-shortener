@@ -37,11 +37,15 @@ http://localhost:8080/swagger-ui/index.html
 
 | Змінна | Опис | Значення за замовчуванням |
 |---|---|---|
-| `SPRING_DATASOURCE_URL` | JDBC URL підключення до PostgreSQL | `jdbc:postgresql://postgres:5432/url_shortener_db` |
-| `SPRING_DATASOURCE_USERNAME` | Користувач БД | `postgres` |
-| `SPRING_DATASOURCE_PASSWORD` | Пароль БД | `postgrespassword` |
+| `DB_URL` | JDBC URL підключення до PostgreSQL | `jdbc:postgresql://localhost:5432/url_shortener_db` |
+| `DB_USERNAME` | Користувач БД | `postgres` |
+| `DB_PASSWORD` | Пароль БД | `postgrespassword` |
 | `JWT_SECRET` | Секретний ключ для підпису JWT-токенів (мінімум 32 байти) | вбудоване dev-значення, **обов'язково змінити на проді** |
 
+При запуску через Docker Compose ці значення передаються контейнеру `app` через `docker-compose.yml`
+(де `DB_URL` вказує на `postgres:5432` — ім'я сервіса в Docker-мережі, а не `localhost`).
+
+Для production-розгортання рекомендується передавати їх ззовні (наприклад, через `.env`-файл або секрети CI/CD), а не зберігати в репозиторії.
 При локальному запуску через Docker Compose ці значення вже прописані в `docker-compose.yml`.
 Для production-розгортання рекомендується передавати їх ззовні (наприклад, через `.env`-файл або секрети CI/CD), а не зберігати в репозиторії.
 
