@@ -2,14 +2,16 @@ package com.example.url_shortener.service;
 
 import com.example.url_shortener.dto.CreateLinkRequest;
 import com.example.url_shortener.dto.LinkResponse;
+import com.example.url_shortener.dto.UpdateLinkRequest;
 import com.example.url_shortener.entity.Link;
 import com.example.url_shortener.entity.User;
 import com.example.url_shortener.exception.AccessDeniedException;
 import com.example.url_shortener.exception.LinkNotFoundException;
+import com.example.url_shortener.exception.UserNotFoundException;
 import com.example.url_shortener.repository.LinkRepository;
 import com.example.url_shortener.repository.UserRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
@@ -17,21 +19,23 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
+@Transactional
 public class LinkService {
 
     private static final String ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
     private static final int CODE_LENGTH = 7;
     private static final SecureRandom RANDOM = new SecureRandom();
 
-    @Autowired
-    private LinkRepository linkRepository;
+    private final LinkRepository linkRepository;
+    private final UserRepository userRepository;
 
-    @Autowired
-    private UserRepository userRepository;
+    public LinkService(LinkRepository linkRepository, UserRepository userRepository) {
+        this.linkRepository = linkRepository;
+        this.userRepository = userRepository;
+    }
 
     public LinkResponse create(CreateLinkRequest request, String username) {
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new IllegalStateException("Authenticated user not found: " + username));
+        User user = getUser(username);
 
         Link link = new Link();
         link.setOriginalUrl(request.getOriginalUrl());
@@ -44,17 +48,40 @@ public class LinkService {
     }
 
     public List<LinkResponse> listMyLinks(String username) {
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new IllegalStateException("Authenticated user not found: " + username));
-
+        User user = getUser(username);
         return linkRepository.findByUserId(user.getId()).stream()
                 .map(this::toResponse)
                 .collect(Collectors.toList());
     }
 
+    public List<LinkResponse> listMyActiveLinks(String username) {
+        User user = getUser(username);
+        return linkRepository.findByUserIdAndExpiresAtAfter(user.getId(), LocalDateTime.now()).stream()
+                .map(this::toResponse)
+                .collect(Collectors.toList());
+    }
+
+    public LinkResponse update(Long linkId, UpdateLinkRequest request, String username) {
+        User user = getUser(username);
+        Link link = linkRepository.findById(linkId)
+                .orElseThrow(() -> new LinkNotFoundException(linkId));
+
+        if (!link.getUser().getId().equals(user.getId())) {
+            throw new AccessDeniedException();
+        }
+
+        if (request.getOriginalUrl() != null) {
+            link.setOriginalUrl(request.getOriginalUrl());
+        }
+        if (request.getExpiresAt() != null) {
+            link.setExpiresAt(request.getExpiresAt());
+        }
+
+        return toResponse(linkRepository.save(link));
+    }
+
     public void delete(Long linkId, String username) {
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new IllegalStateException("Authenticated user not found: " + username));
+        User user = getUser(username);
 
         Link link = linkRepository.findById(linkId)
                 .orElseThrow(() -> new LinkNotFoundException(linkId));
@@ -74,10 +101,13 @@ public class LinkService {
             throw new LinkNotFoundException(shortCode);
         }
 
-        link.setClickCount(link.getClickCount() + 1);
-        linkRepository.save(link);
-
+        linkRepository.incrementClickCount(link.getId());
         return link.getOriginalUrl();
+    }
+
+    private User getUser(String username) {
+        return userRepository.findByUsername(username)
+                .orElseThrow(() -> new UserNotFoundException(username));
     }
 
     private String generateUniqueCode() {

@@ -2,6 +2,7 @@ package com.example.url_shortener.controller;
 
 import com.example.url_shortener.dto.CreateLinkRequest;
 import com.example.url_shortener.dto.LinkResponse;
+import com.example.url_shortener.dto.UpdateLinkRequest;
 import com.example.url_shortener.service.LinkService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,5 +34,14 @@ public class LinkController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable Long id, Authentication authentication) {
         linkService.delete(id, authentication.getName());
+    }
+    @GetMapping("/active")
+    public List<LinkResponse> listMyActiveLinks(Authentication authentication) {
+        return linkService.listMyActiveLinks(authentication.getName());
+    }
+    @PatchMapping("/{id}")
+    public LinkResponse update(@PathVariable Long id, @Valid @RequestBody UpdateLinkRequest request,
+                               Authentication authentication) {
+        return linkService.update(id, request, authentication.getName());
     }
 }
