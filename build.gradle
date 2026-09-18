@@ -81,9 +81,8 @@ jacocoTestCoverageVerification {
 			fileTree(dir: it, exclude: [
 					'**/dto/**',
 					'**/entity/**',
-					'**/config/**',
-					'**/security/**'
 			])
 		}))
 	}
 }
+check.dependsOn jacocoTestCoverageVerification

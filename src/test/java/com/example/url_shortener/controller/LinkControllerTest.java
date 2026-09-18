@@ -48,11 +48,12 @@ class LinkControllerTest {
     private LinkResponse sampleResponse() {
         LinkResponse response = new LinkResponse();
         response.setId(1L);
-        response.setShortCode("abc1234");
+        response.setShortUrl("http://localhost:8080/r/abc1234");
         response.setOriginalUrl("https://www.google.com");
         response.setCreatedAt(LocalDateTime.now());
         response.setExpiresAt(LocalDateTime.now().plusDays(30));
         response.setClickCount(0L);
+        response.setOwnerUsername("taras");
         return response;
     }
 
