@@ -6,10 +6,13 @@ import com.example.url_shortener.dto.UpdateLinkRequest;
 import com.example.url_shortener.entity.Link;
 import com.example.url_shortener.entity.User;
 import com.example.url_shortener.exception.AccessDeniedException;
+import com.example.url_shortener.exception.InvalidExpirationException;
 import com.example.url_shortener.exception.LinkNotFoundException;
 import com.example.url_shortener.exception.UserNotFoundException;
 import com.example.url_shortener.repository.LinkRepository;
 import com.example.url_shortener.repository.UserRepository;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,14 +27,19 @@ public class LinkService {
 
     private static final String ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
     private static final int CODE_LENGTH = 7;
+    private static final int MAX_CREATE_ATTEMPTS = 5;
     private static final SecureRandom RANDOM = new SecureRandom();
 
     private final LinkRepository linkRepository;
     private final UserRepository userRepository;
+    private final String baseUrl;
 
-    public LinkService(LinkRepository linkRepository, UserRepository userRepository) {
+    public LinkService(LinkRepository linkRepository,
+                       UserRepository userRepository,
+                       @Value("${app.base-url}") String baseUrl) {
         this.linkRepository = linkRepository;
         this.userRepository = userRepository;
+        this.baseUrl = baseUrl;
     }
 
     public LinkResponse create(CreateLinkRequest request, String username) {
@@ -39,12 +47,21 @@ public class LinkService {
 
         Link link = new Link();
         link.setOriginalUrl(request.getOriginalUrl());
-        link.setShortCode(generateUniqueCode());
         link.setExpiresAt(LocalDateTime.now().plusDays(30));
         link.setUser(user);
 
-        Link saved = linkRepository.save(link);
-        return toResponse(saved);
+        int attempts = 0;
+        while (true) {
+            link.setShortCode(generateRandomCode());
+            try {
+                Link saved = linkRepository.save(link);
+                return toResponse(saved);
+            } catch (DataIntegrityViolationException ex) {
+                if (++attempts >= 5) {
+                    throw ex;
+                }
+            }
+        }
     }
 
     public List<LinkResponse> listMyLinks(String username) {
@@ -74,10 +91,13 @@ public class LinkService {
             link.setOriginalUrl(request.getOriginalUrl());
         }
         if (request.getExpiresAt() != null) {
+            if (request.getExpiresAt().isBefore(LocalDateTime.now())) {
+                throw new InvalidExpirationException();
+            }
             link.setExpiresAt(request.getExpiresAt());
         }
 
-        return toResponse(linkRepository.save(link));
+        return toResponse(link);
     }
 
     public void delete(Long linkId, String username) {
@@ -110,14 +130,6 @@ public class LinkService {
                 .orElseThrow(() -> new UserNotFoundException(username));
     }
 
-    private String generateUniqueCode() {
-        String code;
-        do {
-            code = generateRandomCode();
-        } while (linkRepository.existsByShortCode(code));
-        return code;
-    }
-
     private String generateRandomCode() {
         StringBuilder sb = new StringBuilder(CODE_LENGTH);
         for (int i = 0; i < CODE_LENGTH; i++) {
@@ -129,11 +141,12 @@ public class LinkService {
     private LinkResponse toResponse(Link link) {
         LinkResponse response = new LinkResponse();
         response.setId(link.getId());
-        response.setShortCode(link.getShortCode());
+        response.setShortUrl(baseUrl + "/r/" + link.getShortCode());
         response.setOriginalUrl(link.getOriginalUrl());
         response.setCreatedAt(link.getCreatedAt());
         response.setExpiresAt(link.getExpiresAt());
         response.setClickCount(link.getClickCount());
+        response.setOwnerUsername(link.getUser().getUsername());
         return response;
     }
 }

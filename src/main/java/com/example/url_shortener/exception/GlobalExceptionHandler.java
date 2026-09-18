@@ -33,6 +33,7 @@ public class GlobalExceptionHandler {
                 errors.put(error.getField(), error.getDefaultMessage()));
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errors);
     }
+
     @ExceptionHandler(LinkNotFoundException.class)
     public ResponseEntity<Map<String, String>> handleLinkNotFound(LinkNotFoundException ex) {
         Map<String, String> body = new HashMap<>();
@@ -46,10 +47,18 @@ public class GlobalExceptionHandler {
         body.put("error", ex.getMessage());
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(body);
     }
+
     @ExceptionHandler(UserNotFoundException.class)
     public ResponseEntity<Map<String, String>> handleUserNotFound(UserNotFoundException ex) {
         Map<String, String> body = new HashMap<>();
         body.put("error", ex.getMessage());
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(body);
+    }
+
+    @ExceptionHandler(InvalidExpirationException.class)
+    public ResponseEntity<Map<String, String>> handleInvalidExpiration(InvalidExpirationException ex) {
+        Map<String, String> body = new HashMap<>();
+        body.put("error", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
     }
 }

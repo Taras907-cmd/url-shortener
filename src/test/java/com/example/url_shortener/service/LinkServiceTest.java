@@ -10,11 +10,13 @@ import com.example.url_shortener.exception.LinkNotFoundException;
 import com.example.url_shortener.exception.UserNotFoundException;
 import com.example.url_shortener.repository.LinkRepository;
 import com.example.url_shortener.repository.UserRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataIntegrityViolationException;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -22,7 +24,6 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
@@ -38,6 +39,11 @@ class LinkServiceTest {
     @InjectMocks
     private LinkService linkService;
 
+    @BeforeEach
+    void setUp() {
+        linkService = new LinkService(linkRepository, userRepository, "http://localhost:8080");
+    }
+
     @Test
     void create_savesLinkWithGeneratedCode() {
         User user = new User();
@@ -48,7 +54,6 @@ class LinkServiceTest {
         request.setOriginalUrl("https://www.google.com");
 
         when(userRepository.findByUsername("taras")).thenReturn(Optional.of(user));
-        when(linkRepository.existsByShortCode(any())).thenReturn(false);
         when(linkRepository.save(any(Link.class))).thenAnswer(invocation -> {
             Link l = invocation.getArgument(0);
             l.setId(1L);
@@ -58,7 +63,8 @@ class LinkServiceTest {
         LinkResponse response = linkService.create(request, "taras");
 
         assertEquals("https://www.google.com", response.getOriginalUrl());
-        assertNotNull(response.getShortCode());
+        assertNotNull(response.getShortUrl());
+        assertEquals("taras", response.getOwnerUsername());
         assertEquals(0L, response.getClickCount());
     }
 
@@ -71,14 +77,14 @@ class LinkServiceTest {
         request.setOriginalUrl("https://www.google.com");
 
         when(userRepository.findByUsername("taras")).thenReturn(Optional.of(user));
-        // Перший раз повертає true (колізія), другий — false
-        when(linkRepository.existsByShortCode(anyString())).thenReturn(true, false);
-        when(linkRepository.save(any(Link.class))).thenAnswer(i -> i.getArgument(0));
+        when(linkRepository.save(any(Link.class)))
+                .thenThrow(new DataIntegrityViolationException("duplicate key"))
+                .thenAnswer(i -> i.getArgument(0));
 
         LinkResponse response = linkService.create(request, "taras");
 
         assertNotNull(response);
-        verify(linkRepository, times(2)).existsByShortCode(anyString());
+        verify(linkRepository, times(2)).save(any(Link.class));
     }
 
     @Test
@@ -143,7 +149,6 @@ class LinkServiceTest {
 
         when(userRepository.findByUsername("taras")).thenReturn(Optional.of(user));
         when(linkRepository.findById(10L)).thenReturn(Optional.of(link));
-        when(linkRepository.save(any(Link.class))).thenAnswer(i -> i.getArgument(0));
 
         LinkResponse response = linkService.update(10L, request, "taras");
 
